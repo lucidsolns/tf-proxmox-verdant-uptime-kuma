@@ -1,0 +1,78 @@
+---
+services:
+
+  # see:
+  #  - https://uptimekuma.org/install-uptime-kuma-docker/
+  #  - https://hub.docker.com/r/louislam/uptime-kuma
+  #  - https://github.com/louislam/uptime-kuma/wiki/Environment-Variables
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - /srv/uptime-kuma-data:/app/data
+    depends_on:
+      - db
+    environment:
+      TZ: Pacific/Auckland
+      UPTIME_KUMA_DB_TYPE: mariadb
+      UPTIME_KUMA_DB_HOSTNAME: db
+      UPTIME_KUMA_DB_PORT: 3306
+      UPTIME_KUMA_DB_NAME: uptimekuma
+      UPTIME_KUMA_DB_USERNAME: kuma
+      UPTIME_KUMA_DB_PASSWORD: ${DB_UPTIME_KUMA_PASSWORD}
+    healthcheck:
+      test: ["CMD", "/app/extra/healthcheck"]
+      interval: 60s
+      retries: 3
+      start_period: 30s
+      timeout: 5s
+    logging:
+      driver: "json-file"
+      options:
+          max-size: "10m"
+          max-file: "3"
+
+
+  db:
+    image: mariadb:11
+    container_name: uptime-kuma-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: uptimekuma
+      MARIADB_USER: kuma
+      MARIADB_PASSWORD: ${DB_UPTIME_KUMA_PASSWORD}
+    volumes:
+      - /srv/mariadb:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5    # How many consecutive failures before marking as unhealthy
+      start_period: 30s # Grace period for the container to start before health checks begin
+    command:
+      # Note: the database device is on a ZFS ZVOL, so double write is off
+      - mariadbd
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=200
+      - --max_heap_table_size=128M
+      - --max_allowed_packet=32M
+      - --tmp_table_size=128M
+      - --join_buffer_size=128M
+      - --innodb=FORCE
+      - --default-storage-engine=InnoDB
+      - --innodb_buffer_pool_size=1G
+      - --innodb_doublewrite=OFF
+      - --innodb_flush_log_at_timeout=3
+      - --innodb_read_io_threads=32
+      - --innodb_write_io_threads=16
+      - --innodb_buffer_pool_instances=9
+      - --innodb_file_format=Barracuda
+      - --innodb_large_prefix=1
+      - --innodb_io_capacity=5000
+      - --innodb_io_capacity_max=10000
+

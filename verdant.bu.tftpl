@@ -1,0 +1,145 @@
+# Uptime Kuma instance configuration for the Flatcar VM, with support for terraform template substitution.
+#
+# see
+#   - https://coreos.github.io/butane/config-flatcar-v1_1/
+#   - https://coreos.github.io/butane/config-flatcar-v1_0/
+#   - https://coreos.github.io/butane/
+#
+version: 1.1.0 # (which maps to ignition v3.4.0)
+variant: flatcar
+
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFkyaM9D4TtCOSdIR8JvH5DCt0UHbfPGx7VlSJrP593N me-ed25519
+
+    - name: kuma
+      uid: 1000
+      primary_group: kuma
+      no_create_home: true
+
+    - name: mysql
+      uid: 999
+      primary_group: mysql
+      no_create_home: true
+  groups:
+    - name: kuma
+      gid: 1000
+
+    - name: mysql
+      gid: 999
+
+storage:
+  disks:
+    # Partition the sparse ZFS zvol with a GPT, with a single partition. This will be used for
+    # the database, and should not be overwritten.
+    #
+    # The device 'virtio1' maps to the second virtual device `/dev/vdb`
+    - device: /dev/vdb
+      wipe_table: false
+      partitions:
+        - label: srv
+          number: 1
+          wipe_partition_entry: false
+          # see:
+          #  - https://uapi-group.org/specifications/specs/discoverable_partitions_specification/
+          #  - https://en.wikipedia.org/wiki/GUID_Partition_Table
+          type_guid: 3B8F8425-20E0-4F3B-907F-1A25A76F98E8
+
+    - device: /dev/vdc
+      wipe_table: false
+      partitions:
+        - label: uptimekuma
+          number: 1
+          wipe_partition_entry: false
+
+  filesystems:
+    # In theory, this partition could be auto-mounted, but it is not on the same physical disk
+    # as the EFI system partition.
+    - device: /dev/disk/by-partlabel/srv
+      path: /srv
+      format: ext4
+      wipe_filesystem: false
+      label: srv
+      with_mount_unit: true
+
+    - device: /dev/disk/by-partlabel/uptimekuma
+      path: /srv/uptime-kuma-data
+      format: ext4
+      wipe_filesystem: false
+      label: uptimekuma
+      with_mount_unit: true
+
+  files:
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: ${vm_name}
+
+    # Locks down the ssh daemon.
+    #
+    # see:
+    #  - https://www.flatcar.org/docs/latest/setup/security/customizing-sshd/
+    - path: /etc/ssh/sshd_config
+      overwrite: true
+      mode: 0600
+      contents:
+        local: sshd_config
+
+    - path: /etc/systemd/network/10-eth0.network
+      contents:
+        local: eth0.network
+
+    # Download the 'docker-compose' sysext. It is important to note that the
+    # download will require network connectivity (which won't have been setup
+    # at this stage as the networkd file won't have been written, so the network
+    # will either need to get an address via DHCP, or a kernel command line configuration.
+    #
+    # see:
+    #  - https://flatcar.github.io/sysext-bakery/docker_compose/
+    #  - https://flatcar.github.io/sysext-bakery/
+    #  - https://www.flatcar.org/docs/latest/provisioning/ignition/network-configuration/
+    - path: /opt/extensions/docker-compose/docker-compose-2.34.0-x86-64.raw
+      mode: 0644
+      contents:
+        source: https://extensions.flatcar.org/extensions/docker-compose-2.34.0-x86-64.raw
+
+    - path: /etc/docker-compose.yaml
+      contents:
+        local: docker-compose.yaml
+
+    # write the initial passwords to an environment file that will be provided to docker compose
+    - path: /etc/docker-compose.env
+      mode: 0400
+      contents:
+        inline: |
+          DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+          DB_UPTIME_KUMA_PASSWORD=${DB_UPTIME_KUMA_PASSWORD}
+
+  links:
+    - target: /opt/extensions/docker-compose/docker-compose-2.34.0-x86-64.raw
+      path: /etc/extensions/docker-compose.raw
+      hard: false
+
+  directories:
+    - path: /srv/mariadb
+      user:
+        name: mysql
+      group:
+        name: mysql
+
+    - path: /srv/uptime-kuma-data
+      user:
+        name: kuma
+      group:
+        name: kuma
+
+
+systemd:
+  units:
+    # owncloud as a docker-compose
+    - name: uptime-kuma.service
+      enabled: true
+      contents_local: uptime-kuma.service
+
