@@ -6,7 +6,8 @@ The Uptime Kuma instance is run as a docker container, with a mariadb container.
 A single ZFS ZVol is used for storage.
 
 
-Note: This configuration excludes a reverse proxy with TLS offload.
+**Note:** This configuration excludes a reverse proxy with TLS offload. This is all
+handled elsewhere.
 
 # Links
 

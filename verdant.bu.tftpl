@@ -14,6 +14,7 @@ passwd:
       ssh_authorized_keys:
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFkyaM9D4TtCOSdIR8JvH5DCt0UHbfPGx7VlSJrP593N me-ed25519
 
+    # the 'node' user on debian bookworm
     - name: kuma
       uid: 1000
       primary_group: kuma
@@ -117,12 +118,20 @@ storage:
           DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
           DB_UPTIME_KUMA_PASSWORD=${DB_UPTIME_KUMA_PASSWORD}
 
+    # Write the `user.yaml` (it may/will have been already written, as this is persistent storage)
+    - path: /srv/dozzle/users.yaml
+      overwrite: true
+      contents:
+        source: ${DOZZLE_USERS_YAML_URI}
+
   links:
     - target: /opt/extensions/docker-compose/docker-compose-2.34.0-x86-64.raw
       path: /etc/extensions/docker-compose.raw
       hard: false
 
   directories:
+    - path: /srv/dozzle
+
     - path: /srv/mariadb
       user:
         name: mysql

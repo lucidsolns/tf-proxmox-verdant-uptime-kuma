@@ -1,18 +1,28 @@
 ---
 services:
-
+  # Use a version 2 of Uptime Kuma (note: version 1 of Uptime Kuma doesn't support
+  # using a mariadb database server).
+  #
+  # Disambiguation of Uptime Kuma docker release tags:
+  #    {beta,latest,nightly2}{-slim,}{-rootless}
+  #
+  #   1 <= latest <= beta <= nightly2: which major version of the software
+  #   slim: use nodejs 20 on bookwork slim (Debian v12)
+  #   rootless:  runs as the node user
+  #
   # see:
   #  - https://uptimekuma.org/install-uptime-kuma-docker/
   #  - https://hub.docker.com/r/louislam/uptime-kuma
   #  - https://github.com/louislam/uptime-kuma/wiki/Environment-Variables
   uptime-kuma:
-    image: louislam/uptime-kuma:latest
+    image: louislam/uptime-kuma:beta-slim-rootless
     container_name: uptime-kuma
     restart: unless-stopped
     ports:
       - "3001:3001"
     volumes:
       - /srv/uptime-kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
     environment:
@@ -24,7 +34,7 @@ services:
       UPTIME_KUMA_DB_USERNAME: kuma
       UPTIME_KUMA_DB_PASSWORD: ${DB_UPTIME_KUMA_PASSWORD}
     healthcheck:
-      test: ["CMD", "/app/extra/healthcheck"]
+      test: [ "CMD", "/app/extra/healthcheck" ]
       interval: 60s
       retries: 3
       start_period: 30s
@@ -32,14 +42,15 @@ services:
     logging:
       driver: "json-file"
       options:
-          max-size: "10m"
-          max-file: "3"
-
+        max-size: "10m"
+        max-file: "3"
 
   db:
     image: mariadb:11
     container_name: uptime-kuma-db
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     environment:
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MARIADB_DATABASE: uptimekuma
@@ -76,3 +87,36 @@ services:
       - --innodb_io_capacity=5000
       - --innodb_io_capacity_max=10000
 
+  # Auto upgrade Uptime Kuma with watchtower
+  #
+  # see:
+  #   - https://github.com/containrrr/watchtower/tree/main
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300
+
+  # Expose the docker logs on port 8080 with dozzle
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/dozzle:/data
+    ports:
+      - 8080:8080
+    environment:
+      # Uncomment to enable container actions (stop, start, restart). See https://dozzle.dev/guide/actions
+      - DOZZLE_ENABLE_ACTIONS=true
+
+      # Uncomment to allow access to container shells. See https://dozzle.dev/guide/shell
+      - DOZZLE_ENABLE_SHELL=true
+
+      # Use simple authentication. The terraform will provision /srv/dozzle/users.yaml, and the whole
+      # dozzle directory can be added to the container.
+      #
+      # See:
+      #   - https://dozzle.dev/guide/authentication
+      - DOZZLE_AUTH_PROVIDER=simple
