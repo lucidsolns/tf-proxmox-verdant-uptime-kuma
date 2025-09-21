@@ -47,6 +47,10 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  #  Standard mariadb (mysql) - use the long term support version
+  #
+  # see:
+  # - https://hub.docker.com/_/mariadb
   db:
     image: mariadb:11
     container_name: mariadb
