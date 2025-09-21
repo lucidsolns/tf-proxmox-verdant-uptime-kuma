@@ -26,7 +26,7 @@ module "uptime_kuma" {
   butane_variables = {
     DB_ROOT_PASSWORD        = random_password.db_root_password.result
     DB_UPTIME_KUMA_PASSWORD = random_password.db_owncloud_password.result
-    DOZZLE_USERS_YAML_URI       = local.dozzle_user_yaml_data_uri
+    DOZZLE_USERS_YAML_URI   = module.dozzle_users.yaml_data_uri
   }
   bridge  = var.bridge
   vlan_id = var.vlan_id
@@ -70,58 +70,11 @@ resource "random_password" "db_root_password" {
   special = false # include special chars
 }
 
-resource "random_password" "dozzle_admin_password" {
-  length  = 32    # number of characters
-  special = false # include special chars
+module dozzle_users {
+  source = "./dozzle"
 }
 
-/*
-  Generate a bcrypt hash of the dozzle admin users password. This will be part
-  of the user.yaml file mounted in the dozzle container for 'simple' authentication.
-
-  see:
-    - https://registry.terraform.io/providers/viktorradnai/bcrypt/latest/docs/resources/hash
-*/
-resource "bcrypt_hash" "dozzle_admin" {
-  cleartext = random_password.dozzle_admin_password.result
+output dozzle_passwords {
+  value = module.dozzle_users.passwords
+  sensitive = true
 }
-
-
-locals {
-  /*
-    Create a dozzle users.yaml file content.
-
-    see:
-        - https://dozzle.dev/guide/authentication
-        - https://developer.hashicorp.com/terraform/language/functions/yamlencode
-  */
-  dozzle_users_yaml = yamlencode({
-    users : {
-      admin : {
-        email : "dozzle@lucidsolutions.co.nz"
-        name : "Admin"
-        password : bcrypt_hash.dozzle_admin.id
-      }
-    }
-  })
-
-  /*
-    Encode this YAML file as a base64 encoded data URL, so it can be easily and
-    opaquely included into the butane configuration.
-
-  */
-  dozzle_user_yaml_data_uri = "data:text/plain;base64,${base64encode(local.dozzle_users_yaml)}"
-}
-
-/*
-  Provide the dozzle admin password. Use the following command to get the password
-  from the terraform state file:
-
-       terraform output -raw dozzle_admin_password
-*/
-output "dozzle_admin_password" {
-  description = "The password to use for the admin user for dozzle log viewer"
-  value       = random_password.dozzle_admin_password.result
-  sensitive   = true
-}
-
