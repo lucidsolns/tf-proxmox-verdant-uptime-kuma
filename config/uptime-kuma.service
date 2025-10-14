@@ -1,9 +1,0 @@
-[Unit]
-After=docker.service systemd-sysext.service
-Requires=docker.service systemd-sysext.service
-
-[Service]
-ExecStart=/usr/bin/docker compose -f /etc/docker-compose.yaml --env-file /etc/docker-compose.env up
-
-[Install]
-WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Requires=docker.service systemd-sysext.service
+After=docker.service systemd-sysext.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/etc
+EnvironmentFile=-/etc/docker-compose.env
+ExecStart=/usr/bin/docker compose -f /etc/docker-compose.yaml up -d
+ExecStop=/usr/bin/docker compose -f /etc/docker-compose.yaml down
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

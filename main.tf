@@ -21,7 +21,7 @@ module "uptime_kuma" {
     dedicated = 1500
   }
 
-  butane_conf         = "${path.module}/verdant.bu.tftpl"
+  butane_conf         = "${path.module}/butane.tftpl"
   butane_snippet_path = "${path.module}/config"
   butane_variables = {
     DB_ROOT_PASSWORD        = random_password.db_root_password.result
