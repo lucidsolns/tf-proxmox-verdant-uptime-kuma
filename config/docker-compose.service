@@ -1,4 +1,5 @@
 [Unit]
+Description=Start a single docker compose based application
 Requires=docker.service systemd-sysext.service
 After=docker.service systemd-sysext.service network-online.target
 Wants=network-online.target

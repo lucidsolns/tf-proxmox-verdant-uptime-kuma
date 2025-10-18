@@ -71,7 +71,7 @@ services:
     volumes:
       - /srv/mariadb:/var/lib/mysql
     networks:
-      - db_bridge
+      db_bridge: {}
     healthcheck:
       test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}" ]
       interval: 30s
@@ -112,7 +112,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 300
     networks:
-      - bridge
+      util_bridge:
 
   # Expose the docker logs on port 8080 with dozzle
   dozzle:
@@ -124,7 +124,7 @@ services:
     ports:
       - 8080:8080
     networks:
-      - bridge
+      util_bridge:
     environment:
       # Uncomment to enable container actions (stop, start, restart). See https://dozzle.dev/guide/actions
       - DOZZLE_ENABLE_ACTIONS=true
@@ -152,7 +152,12 @@ networks:
     name: db_bridge
     driver: bridge
 
+  util_bridge:
+    name: util_bridge
+    driver: bridge
+
   # The docker macvlan interface with dual stack support. This is used for the workloads
   # that need full IPv6 connectivity.
   macvlan_net:
     external: true
+    enable_ipv6: true

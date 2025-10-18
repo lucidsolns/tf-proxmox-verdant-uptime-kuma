@@ -15,3 +15,4 @@ handled elsewhere.
 - https://github.com/louislam/uptime-kuma
 - https://registry.terraform.io/modules/lucidsolns/flatcar-vm/proxmox/latest
 - https://github.com/lucidsolns/terraform-proxmox-flatcar-vm
+- https://github.com/louislam/uptime-kuma/issues/5676

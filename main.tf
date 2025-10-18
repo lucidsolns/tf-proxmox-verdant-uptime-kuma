@@ -6,7 +6,7 @@
  */
 module "uptime_kuma" {
   source  = "lucidsolns/flatcar-vm/proxmox"
-  version = "1.0.10"
+  version = "1.0.11"
 
   vm_name        = "verdant.lucidsolutions.co.nz"
   vm_description = "A Flatcar VM with docker compose running an uptime kuma instance"
@@ -74,6 +74,10 @@ module dozzle_users {
   source = "./dozzle"
 }
 
+/*
+  The dozzle user passwords. Use the following command to get the passwords:
+     terraform output -json dozzle_passwords
+*/
 output dozzle_passwords {
   value = module.dozzle_users.passwords
   sensitive = true
