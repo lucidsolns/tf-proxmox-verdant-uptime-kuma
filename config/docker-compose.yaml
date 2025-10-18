@@ -2,7 +2,7 @@
 name: uptime-kuma
 
 services:
-  # Use a version 2 of Uptime Kuma (note: version 1 of Uptime Kuma doesn't support
+  # Use version 2 of Uptime Kuma (note: version 1 of Uptime Kuma doesn't support
   # using a mariadb database server).
   #
   # Disambiguation of Uptime Kuma docker release tags:
@@ -27,6 +27,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
+    networks:
+      macvlan_net:
+        # a single IPv6 address is supported
+        ipv6_address: 2407:8b00:1169:20b::100
+        ipv4_address: 10.20.11.100
+      db_bridge: {}
     environment:
       TZ: Pacific/Auckland
       UPTIME_KUMA_DB_TYPE: mariadb
@@ -64,6 +70,8 @@ services:
       MARIADB_PASSWORD: ${DB_UPTIME_KUMA_PASSWORD}
     volumes:
       - /srv/mariadb:/var/lib/mysql
+    networks:
+      - db_bridge
     healthcheck:
       test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}" ]
       interval: 30s
@@ -103,6 +111,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 300
+    networks:
+      - bridge
 
   # Expose the docker logs on port 8080 with dozzle
   dozzle:
@@ -113,6 +123,8 @@ services:
       - /srv/dozzle:/data
     ports:
       - 8080:8080
+    networks:
+      - bridge
     environment:
       # Uncomment to enable container actions (stop, start, restart). See https://dozzle.dev/guide/actions
       - DOZZLE_ENABLE_ACTIONS=true
@@ -126,3 +138,21 @@ services:
       # See:
       #   - https://dozzle.dev/guide/authentication
       - DOZZLE_AUTH_PROVIDER=simple
+
+
+networks:
+  # This is the default IPv4 bridge - this is used for internal services or those
+  # not needing full IPv6 connectivity.
+  bridge:
+    external: true
+    name: bridge           # Explicitly refer to Docker’s default bridge
+
+  # A bridge (that is not the default bridge) that can coexist with the macvlan network
+  db_bridge:
+    name: db_bridge
+    driver: bridge
+
+  # The docker macvlan interface with dual stack support. This is used for the workloads
+  # that need full IPv6 connectivity.
+  macvlan_net:
+    external: true

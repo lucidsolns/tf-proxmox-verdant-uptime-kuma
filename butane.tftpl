@@ -88,6 +88,10 @@ storage:
       contents:
         local: sshd_config
 
+    - path: /etc/sysctl.d/99-ipv6-forwarding.conf
+      contents:
+        local: sysctl-ipv6-forwarding.conf
+
     - path: /etc/systemd/network/10-eth0.network
       contents:
         local: eth0.network
@@ -151,3 +155,6 @@ systemd:
       enabled: true
       contents_local: docker-compose.service
 
+    - name: macvlan.service
+      enabled: true
+      contents_local: macvlan.service
