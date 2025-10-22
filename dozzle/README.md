@@ -48,11 +48,11 @@ output dozzle_passwords {
 ```
 
 In this (and all the examples so far), provide the dozzles user file with passwords as a 
-a data URI to the butane configuration for the VM.
+data URI to the butane configuration for the VM.
 
 ```terraform
 butane_variables = {
-    DOZZLE_USERS_YAML_URI   = module.dozzle_users.yaml_data_uri
+    DOZZLE_USERS_YAML_URI = module.dozzle_users.yaml_data_uri
 }
 ```
 
