@@ -6,7 +6,7 @@
  */
 module "uptime_kuma" {
   source  = "lucidsolns/flatcar-vm/proxmox"
-  version = "1.0.11"
+  version = "1.0.12"
 
   vm_name        = "verdant.lucidsolutions.co.nz"
   vm_description = "A Flatcar VM with docker compose running an uptime kuma instance"

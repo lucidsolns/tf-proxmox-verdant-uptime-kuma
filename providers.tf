@@ -11,9 +11,24 @@ terraform {
       source  = "bpg/proxmox"
       version = "0.85.1"
     }
+
+    /*
+        see:
+          - https://registry.terraform.io/providers/hashicorp/random/latest
+     */
     random = {
       source  = "hashicorp/random"
       version = "~> 3.7.2"
+    }
+
+    /**
+       see:
+         - https://registry.terraform.io/providers/KeisukeYamashita/butane/latest
+         - https://github.com/KeisukeYamashita/terraform-provider-butane
+     */
+    butane = {
+      source = "KeisukeYamashita/butane"
+      version = ">= 0.1.4"
     }
   }
 }
