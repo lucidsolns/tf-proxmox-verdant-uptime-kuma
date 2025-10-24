@@ -1,3 +1,6 @@
+#
+#  Create a docker network for containers that need dual stack/IPv6 connectivity.
+#
 [Unit]
 Description=Create Docker macvlan network (dual stack with IPv6 GLA, ULA and IPv4 support)
 After=docker.service
@@ -14,7 +17,10 @@ Environment="IPV4_GATEWAY=10.20.11.1"
 Environment="PARENT_IFACE=eth0"
 Environment="NETWORK_NAME=macvlan_net"
 
-ExecStart=/usr/bin/docker network create -d macvlan --ipv6 --subnet=${IPV4_SUBNET} --gateway=${IPV4_GATEWAY} --subnet=${IPV6_GLA_SUBNET} --gateway=${IPV6_GLA_GATEWAY} --subnet=${IPV6_ULA_SUBNET} --gateway=${IPV6_ULA_GATEWAY} -o parent=${PARENT_IFACE} ${NETWORK_NAME}
+# Create the interface iff this is the first run. Docker will persist this accross reboots,
+# so an outright create will fail on subsequent starts. The command line is a single line
+# as butane doesn't handle line continuations in include files.
+ExecStart=/bin/bash -c 'docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1 || docker network create -d macvlan --ipv6 --subnet="${IPV4_SUBNET}" --gateway="${IPV4_GATEWAY}" --subnet="${IPV6_GLA_SUBNET}" --gateway="${IPV6_GLA_GATEWAY}" --subnet="${IPV6_ULA_SUBNET}" --gateway="${IPV6_ULA_GATEWAY}" -o parent="${PARENT_IFACE}" "${NETWORK_NAME}"'
 RemainAfterExit=yes
 
 [Install]
