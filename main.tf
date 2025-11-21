@@ -25,7 +25,7 @@ module "uptime_kuma" {
   butane_snippet_path = "${path.module}/config"
   butane_variables = {
     DB_ROOT_PASSWORD        = random_password.db_root_password.result
-    DB_UPTIME_KUMA_PASSWORD = random_password.db_owncloud_password.result
+    DB_UPTIME_KUMA_PASSWORD = random_password.db_uptime_kuma_password.result
     DOZZLE_USERS_YAML_URI   = module.dozzle_users.yaml_data_uri
   }
   bridge  = var.bridge
@@ -55,9 +55,9 @@ module "uptime_kuma" {
   storage_path_mapping = var.storage_path_mapping
 }
 /*
-  Generate a random password to be used for the 'owncloud' user for the db server
+  Generate a random password to be used for the 'uptime kuma' user for the db server
 */
-resource "random_password" "db_owncloud_password" {
+resource "random_password" "db_uptime_kuma_password" {
   length  = 32    # number of characters
   special = false # include special chars
 }
